@@ -1,4 +1,6 @@
 from code.data import filepath
+from code.calculations import direction, compass_loop
+from math import sin, cos, pi
 import pygame
 
 
@@ -45,14 +47,14 @@ class Server(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, self.containers)
         
         # Set up the sprite image 
-        self.image = pygame.Surface((100, 100))
+        self.image = pygame.Surface((10, 10))
         self.image.fill(RED)
         
         # Set up the rect that controls the size and location of the sprite
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         
-        self.emit_time = 30 # frames
+        self.emit_time = 60 # frames
         self.timer = self.emit_time
         
     def update(self):
@@ -65,7 +67,7 @@ class Bit(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, self.containers)
         
         # Set up the sprite image 
-        self.image = pygame.Surface((100, 100))
+        self.image = pygame.Surface((10, 10))
         self.image.fill(BLUE)
         
         # Set up the rect that controls the size and location of the sprite
@@ -75,8 +77,13 @@ class Bit(pygame.sprite.Sprite):
     def update(self):
         self.rect.top += GRAVITY
         
+    def move(self, data_objects):
+        for object in data_objects:
+            if object.type == "wind":
+                pass
         
-class Data:
+        
+class Data_Type:
     # self.exponent_data should be a dict with all the counted data
     def count_data(self):
         bits = 0
@@ -87,8 +94,9 @@ class Data:
         return bits
         
 
-class Wind(Data, pygame.sprite.Sprite):
-    def __init__(self, x, y, magnitude=1, direction=0):
+class Wind(Data_Type, pygame.sprite.Sprite):
+    def __init__(self, x, y, magnitude=1, direction=pi/2):
+        self.type = "wind"
         # Set up the sprite
         pygame.sprite.Sprite.__init__(self, self.containers)
         
@@ -104,6 +112,13 @@ class Wind(Data, pygame.sprite.Sprite):
         # self.exponent_data increases for each extra bit you use (i.e. the number 7 costs 3, the number 8 costs 4)
         self.linear_data = {'x':x, 'y':y, 'direction':direction}
         self.exponent_data = {'magnitude':magnitude}
+        
+        ## THIS CODE IS LITERALLY HITLER
+        # It calculates the nodes (or edges) of the rotated fan
+        # They are used in the caculations of whether a bit is in the wind or not
+        nodes = ([int(self.rect.width//2*cos(direction)+self.rect.width//2), int(self.rect.width//2*sin(direction)+self.rect.width//2)], [int(self.rect.width//2*cos(direction + pi)+self.rect.width//2), int(self.rect.width//2*sin(direction + pi)+self.rect.width//2)])
+        pygame.draw.circle(self.image, BLACK, nodes[0], 3)
+        pygame.draw.circle(self.image, BLACK, nodes[1], 3)
         
     #def count_data(self):
     #    pass

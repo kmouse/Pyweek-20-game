@@ -35,10 +35,13 @@ def main():
     interaction_group = pygame.sprite.Group()
     # Pygame group for dynamic objects that the user can't interact with
     dynamic_group = pygame.sprite.Group()
+    # Group for the individual objects
+    bit_group = pygame.sprite.Group()
+    server_group = pygame.sprite.Group()
     
     Wind.containers = interaction_group
-    Bit.containers = dynamic_group
-    Server.containers = dynamic_group
+    Bit.containers = dynamic_group, bit_group
+    Server.containers = dynamic_group, server_group
     
     Wind(200, 200)
     Server(0,0)
@@ -52,12 +55,13 @@ def main():
                 sys.exit()
                 
         dynamic_group.update()
-        for item in dynamic_group:
-            if str(item.__class__) == "<class 'code.objects.Server'>":
-                if item.timer == 0:
-                    Bit(item.rect.top, item.rect.left)
+        for item in server_group:
+            if item.timer == 0:
+                Bit(item.rect.top, item.rect.left)
                 
-                
+        for bit in bit_group:
+            bit.move(interaction_group)
+            
         draw(screen, interaction_group, dynamic_group)
         pygame.display.update()
         clock.tick(FPS)
