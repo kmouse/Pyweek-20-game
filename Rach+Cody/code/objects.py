@@ -39,6 +39,11 @@ def get_data_size_int(point):
         i += 1
         
     return (i)
+    
+    
+class Menu:
+    def __init__(self, screen):
+        pass
 
     
 class Server(pygame.sprite.Sprite):
