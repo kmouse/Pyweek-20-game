@@ -5,12 +5,22 @@ def direction(point_1, point_2):
     y = point_2[1] - point_1[1]
     return compass_lock(atan2(y, x))
     
-def compass_lock(angle):
-    # 6 is ~2*pi
-    if angle >= 6:
-        angle %= 2*pi
-        
-    while angle < 0:
-        angle += 2*pi
-        
-    return angle
+def compass_lock(angle, positive_range=True):
+    if positive_range:
+        # 6 is ~2*pi
+        if angle >= 6:
+            angle %= 2*pi
+            
+        while angle < 0:
+            angle += 2*pi
+            
+        return angle
+    else:
+        # 6 is ~2*pi
+        while angle >= pi:
+            angle -= 2*pi
+            
+        while angle < -pi:
+            angle += 2*pi
+            
+        return angle

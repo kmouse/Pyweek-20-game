@@ -1,4 +1,5 @@
 from code.objects import Wind, Bit, Server
+from code.calculations import direction
 import pygame
 import sys
 
@@ -43,7 +44,7 @@ def main():
     Bit.containers = dynamic_group, bit_group
     Server.containers = dynamic_group, server_group
     
-    Wind(200, 200)
+    Wind(100, 100, magnitude=50)
     Server(0,0)
     
     clock = pygame.time.Clock()
@@ -53,12 +54,17 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
-                
+            if event.type == pygame.KEYDOWN:
+                pass
+               
         dynamic_group.update()
         for item in server_group:
             if item.timer == 0:
                 Bit(item.rect.top, item.rect.left)
                 
+        mouse = pygame.mouse.get_pos()
+        for item in interaction_group:
+            item.update_direction(-direction(item.rect.center, mouse))
         for bit in bit_group:
             bit.move(interaction_group)
             

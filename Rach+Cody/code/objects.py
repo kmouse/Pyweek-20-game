@@ -1,5 +1,5 @@
 from code.data import filepath
-from code.calculations import direction, compass_loop
+from code.calculations import direction, compass_lock
 from math import sin, cos, pi
 import pygame
 
@@ -7,7 +7,7 @@ import pygame
 # This is how much a linear data item (e.g. position) costs
 STATIC_DATA_COST = 4
 
-GRAVITY = 10
+GRAVITY = 0.05
 
 FPS = 60
 
@@ -70,17 +70,25 @@ class Bit(pygame.sprite.Sprite):
         self.image = pygame.Surface((10, 10))
         self.image.fill(BLUE)
         
+        self.x, self.y = x, y
+        
         # Set up the rect that controls the size and location of the sprite
         self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        self.rect.topleft = (self.x, self.y)
+        
+        self.velocity = [0,0]
         
     def update(self):
-        self.rect.top += GRAVITY
+        self.velocity[1] += GRAVITY
+        self.x += self.velocity[0]
+        self.y += self.velocity[1]
+        
+        self.rect.topleft = (self.x, self.y)
         
     def move(self, data_objects):
         for object in data_objects:
             if object.type == "wind":
-                pass
+                object.move_bit(self)
         
         
 class Data_Type:
@@ -95,7 +103,8 @@ class Data_Type:
         
 
 class Wind(Data_Type, pygame.sprite.Sprite):
-    def __init__(self, x, y, magnitude=1, direction=pi/2):
+    def __init__(self, x, y, magnitude=100, direction=0.7):
+        assert (0 <= magnitude <= 100)
         self.type = "wind"
         # Set up the sprite
         pygame.sprite.Sprite.__init__(self, self.containers)
@@ -116,9 +125,34 @@ class Wind(Data_Type, pygame.sprite.Sprite):
         ## THIS CODE IS LITERALLY HITLER
         # It calculates the nodes (or edges) of the rotated fan
         # They are used in the caculations of whether a bit is in the wind or not
-        nodes = ([int(self.rect.width//2*cos(direction)+self.rect.width//2), int(self.rect.width//2*sin(direction)+self.rect.width//2)], [int(self.rect.width//2*cos(direction + pi)+self.rect.width//2), int(self.rect.width//2*sin(direction + pi)+self.rect.width//2)])
-        pygame.draw.circle(self.image, BLACK, nodes[0], 3)
-        pygame.draw.circle(self.image, BLACK, nodes[1], 3)
+        self.nodes = ([int(self.rect.width//2*cos(-direction-pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction-pi/2)+self.rect.width//2)], [int(self.rect.width//2*cos(-direction + pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction + pi/2)+self.rect.width//2)])
+        pygame.draw.circle(self.image, BLACK, self.nodes[0], 3)
+        pygame.draw.circle(self.image, BLACK, self.nodes[1], 3)
+        self.nodes[0][0] += self.rect.left
+        self.nodes[1][0] += self.rect.left
+        self.nodes[0][1] += self.rect.top
+        self.nodes[1][1] += self.rect.top
         
-    #def count_data(self):
-    #    pass
+        
+    def move_bit(self, bit):
+        # Get the angle from both nodes
+        angles = [direction(self.nodes[0], bit.rect.center), direction(self.nodes[1], bit.rect.center)]
+        #angles = [direction((0,1), (0,0)), direction((0,0), (-1,0))]
+        angles[0] = compass_lock(angles[0] + self.linear_data['direction'], False)
+        angles[1] = compass_lock(angles[1] + self.linear_data['direction'], False)
+        #print(angles, pi/2, self.nodes[0], bit.rect.topleft)
+        if angles[0] > 0 and angles[1] < 0:
+            #print ("Yoooooooooo")
+            bit.velocity[0] += self.exponent_data['magnitude'] * cos(self.linear_data['direction']) / 200
+            bit.velocity[1] -= self.exponent_data['magnitude'] * sin(self.linear_data['direction']) / 200
+            
+    def update_direction(self, direction):
+        self.image.fill(WHITE)
+        self.linear_data['direction'] = direction
+        self.nodes = ([int(self.rect.width//2*cos(-direction-pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction-pi/2)+self.rect.width//2)], [int(self.rect.width//2*cos(-direction + pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction + pi/2)+self.rect.width//2)])
+        pygame.draw.circle(self.image, BLACK, self.nodes[0], 3)
+        pygame.draw.circle(self.image, BLACK, self.nodes[1], 3)
+        self.nodes[0][0] += self.rect.left
+        self.nodes[1][0] += self.rect.left
+        self.nodes[0][1] += self.rect.top
+        self.nodes[1][1] += self.rect.top
