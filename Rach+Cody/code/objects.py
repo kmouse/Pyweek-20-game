@@ -9,6 +9,9 @@ STATIC_DATA_COST = 4
 
 GRAVITY = 0.05
 
+MENU_WIDTH = 200
+MENU_ITEM_HEIGHT = 70
+
 FPS = 60
 
 BLACK = (0,   0,   0  )
@@ -16,6 +19,12 @@ WHITE = (255, 255, 255)
 GREEN = (25,  230, 100)
 RED   = (255, 0,   0  )
 BLUE  = (45,  75,  245)
+TRANSPARENT = (0, 0, 0, 30)
+TRANSPARENT_DARK = (0, 0, 0, 60)
+TRANSPARENT_DARKER = (0, 0, 0, 120)
+TRANSPARENT_DARKEST = (0, 0, 0, 240)
+
+pygame.font.init()
 
 
 # Load an image for pygame
@@ -41,9 +50,43 @@ def get_data_size_int(point):
     return (i)
     
     
-class Menu:
-    def __init__(self, screen):
+def text(string, size):
+    font = pygame.font.Font(None, size)
+    return font.render(str(string), True, BLACK)
+    
+    
+class Menu_Item:
+    def __init__(self, type, quantity):
+        self.type = type
+        self.image = pygame.Surface((MENU_WIDTH, MENU_ITEM_HEIGHT), pygame.SRCALPHA)
+        self.image.fill(TRANSPARENT)
+        pygame.draw.line(self.image, TRANSPARENT_DARK, (0, MENU_ITEM_HEIGHT), (MENU_WIDTH, MENU_ITEM_HEIGHT), 6)
+        self.image.blit(text(type, 40), (10,10))
+        self.image.blit(text(quantity, 20), (25,50))
+        
+    def pressed(self):
         pass
+    
+    
+class Menu:
+    def __init__(self, width, height, objects={}):
+        self.image = pygame.Surface((width, height))
+        self.image.fill(GREEN)
+        self.scroll = 0
+        
+        self.menu_items = []
+        
+        for object in objects:
+            self.menu_items.append(Menu_Item(object, objects[object]))
+        
+    def update(self):
+        self.image.fill(GREEN)
+        for i in range(len(self.menu_items)):
+            self.image.blit(self.menu_items[i].image, (0, 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll))
+        
+    def update_size(self, width, height):
+        self.image = pygame.Surface((width, height))
+        self.image.fill(GREEN)
 
     
 class Server(pygame.sprite.Sprite):

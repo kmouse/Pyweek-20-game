@@ -6,8 +6,10 @@ import sys
 
 FPS = 60
 
-DEFAULT_SCREEN_WIDTH  = 640
-DEFAULT_SCREEN_HEIGHT = 480
+MENU_WIDTH = 200
+
+DEFAULT_SCREEN_WIDTH  = 700
+DEFAULT_SCREEN_HEIGHT = 500
 
 BLACK = (0,   0,   0  )
 WHITE = (255, 255, 255)
@@ -22,10 +24,15 @@ def draw(screen, *groups):
         group.draw(screen)
         
         
+def update_menu(screen, menu):
+    menu.update()
+    screen.blit(menu.image, (0, 0))
+        
+        
 def main():
     screen = pygame.display.set_mode((DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE)
-    game = pygame.Surface((DEFAULT_SCREEN_WIDTH-200, DEFAULT_SCREEN_HEIGHT))
-    menu = pygame.Surface((DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT))
+    game = pygame.Surface((DEFAULT_SCREEN_WIDTH-MENU_WIDTH, DEFAULT_SCREEN_HEIGHT))
+    menu_surfece = pygame.Surface((MENU_WIDTH, DEFAULT_SCREEN_HEIGHT))
     
     # A pygame group for things the user interacts with
     interaction_group = pygame.sprite.Group()
@@ -39,6 +46,8 @@ def main():
     Bit.containers = dynamic_group, bit_group
     Server.containers = dynamic_group, server_group
     
+    menu = Menu(screen.get_width(), screen.get_height(), {"dogs":3, "cats":3})
+    
     Wind(100, 100, magnitude=50)
     Server(0,0)
     
@@ -51,8 +60,9 @@ def main():
                 sys.exit()
             if event.type == pygame.VIDEORESIZE:
                 screen = pygame.display.set_mode((max(event.w, DEFAULT_SCREEN_WIDTH), max(event.h, DEFAULT_SCREEN_HEIGHT)), pygame.RESIZABLE)
-                game = pygame.Surface((max(event.w, DEFAULT_SCREEN_WIDTH)-200, max(event.h, DEFAULT_SCREEN_HEIGHT)))
-                menu = pygame.Surface((200, max(event.h, DEFAULT_SCREEN_HEIGHT)))
+                game = pygame.Surface((max(event.w, DEFAULT_SCREEN_WIDTH)-MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
+                menu_surfece = pygame.Surface((MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
+                menu.update_size(MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT))
                 print(dir(event))
                
         dynamic_group.update()
@@ -67,9 +77,10 @@ def main():
             bit.move(interaction_group)
             
         draw(game, interaction_group, dynamic_group)
-        menu.fill((GREEN))
+        menu_surfece.fill((GREEN))
+        update_menu(menu_surfece, menu)
+        screen.blit(menu_surfece, (screen.get_width()-MENU_WIDTH, 0))
         screen.blit(game, (0, 0))
-        screen.blit(menu, (screen.get_width()-200, 0))
         pygame.display.update()
         clock.tick(FPS)
 
