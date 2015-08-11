@@ -24,3 +24,9 @@ def compass_lock(angle, positive_range=True):
             angle += 2*pi
             
         return angle
+        
+def collide_point_square(point, topleft, bottomright):
+    if topleft[0] <= point[0] <= bottomright[0]:
+        if topleft[1] <= point[1] <= bottomright[1]:
+            return True
+    return False

@@ -1,5 +1,5 @@
 from code.data import filepath
-from code.calculations import direction, compass_lock
+from code.calculations import direction, compass_lock, collide_point_square
 from math import sin, cos, pi
 import pygame
 
@@ -14,15 +14,16 @@ MENU_ITEM_HEIGHT = 70
 
 FPS = 60
 
+UNPRESS = 0
+HOVER   = 1
+PRESS   = 2
+
 BLACK = (0,   0,   0  )
 WHITE = (255, 255, 255)
 GREEN = (25,  230, 100)
 RED   = (255, 0,   0  )
 BLUE  = (45,  75,  245)
 TRANSPARENT = (0, 0, 0, 30)
-TRANSPARENT_DARK = (0, 0, 0, 60)
-TRANSPARENT_DARKER = (0, 0, 0, 120)
-TRANSPARENT_DARKEST = (0, 0, 0, 240)
 
 pygame.font.init()
 
@@ -58,14 +59,34 @@ def text(string, size):
 class Menu_Item:
     def __init__(self, type, quantity):
         self.type = type
+        self.quantity = quantity
+        self.state = 0
         self.image = pygame.Surface((MENU_WIDTH, MENU_ITEM_HEIGHT), pygame.SRCALPHA)
-        self.image.fill(TRANSPARENT)
-        pygame.draw.line(self.image, TRANSPARENT_DARK, (0, MENU_ITEM_HEIGHT), (MENU_WIDTH, MENU_ITEM_HEIGHT), 6)
+        self.image.fill((0, 0, 0, 30))
+        pygame.draw.line(self.image, (0, 0, 0, 60), (0, MENU_ITEM_HEIGHT), (MENU_WIDTH, MENU_ITEM_HEIGHT), 6)
         self.image.blit(text(type, 40), (10,10))
         self.image.blit(text(quantity, 20), (25,50))
         
-    def pressed(self):
-        pass
+    def press(self, state):
+        self.state = state
+        if state == UNPRESS:
+            self.image.fill((0, 0, 0, 30))
+            pygame.draw.line(self.image, (0, 0, 0, 60), (0, MENU_ITEM_HEIGHT), (MENU_WIDTH, MENU_ITEM_HEIGHT), 6)
+            self.image.blit(text(self.type, 40), (10,10))
+            self.image.blit(text(self.quantity, 20), (25,50))
+        elif state == HOVER:
+            self.image.fill((0, 0, 0, 45))
+            pygame.draw.line(self.image, (0, 0, 0, 60), (0, MENU_ITEM_HEIGHT), (MENU_WIDTH, MENU_ITEM_HEIGHT), 6)
+            self.image.blit(text(self.type, 40), (10,10))
+            self.image.blit(text(self.quantity, 20), (25,50))
+        elif state == PRESS:
+            self.image.fill((0, 0, 0, 75))
+            pygame.draw.line(self.image, (0, 0, 0, 100), (0, MENU_ITEM_HEIGHT), (MENU_WIDTH, MENU_ITEM_HEIGHT), 6)
+            self.image.blit(text(self.type, 40), (10,10))
+            self.image.blit(text(self.quantity, 20), (25,50))
+            
+    def update(self):
+        press(self.state)
     
     
 class Menu:
@@ -76,17 +97,46 @@ class Menu:
         
         self.menu_items = []
         
+        self.pressed = None
+        
         for object in objects:
             self.menu_items.append(Menu_Item(object, objects[object]))
+            
+        self.create_stack = []
         
     def update(self):
         self.image.fill(GREEN)
         for i in range(len(self.menu_items)):
             self.image.blit(self.menu_items[i].image, (0, 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll))
+
+    def press(self, mouse_pos, mouse_pressed, screen_width):
+        ##FIX THESE LINES DAMMIT
+        for i in range(len(self.menu_items)):
+            if mouse_pressed == False:
+                self.pressed = None
+            elif self.pressed == None and 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll <= mouse_pos[1] <= 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll + MENU_ITEM_HEIGHT and screen_width - mouse_pos[0] < 200:
+                self.pressed = i
+                if (self.menu_items[i].quantity > 0):
+                    self.create_stack.append(self.menu_items[i].type)
+                    self.menu_items[i].quantity -= 1
+                
+            if self.pressed == i:
+                self.menu_items[i].press(PRESS)
+            elif 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll <= mouse_pos[1] <= 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll + MENU_ITEM_HEIGHT and screen_width - mouse_pos[0] < 200 and self.pressed == None:
+                self.menu_items[i].press(HOVER)
+                #print ("YEHAH")
+            else:
+                self.menu_items[i].press(UNPRESS)
         
     def update_size(self, width, height):
         self.image = pygame.Surface((width, height))
         self.image.fill(GREEN)
+        
+    def create(self):
+        # If there's items to be create
+        if len(self.create_stack):
+            return self.create_stack.pop(0)
+        return None
 
     
 class Server(pygame.sprite.Sprite):
@@ -100,7 +150,7 @@ class Server(pygame.sprite.Sprite):
         
         # Set up the rect that controls the size and location of the sprite
         self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        self.rect.center = (x, y)
         
         self.emit_time = 60 # frames
         self.timer = self.emit_time
@@ -122,7 +172,7 @@ class Bit(pygame.sprite.Sprite):
         
         # Set up the rect that controls the size and location of the sprite
         self.rect = self.image.get_rect()
-        self.rect.topleft = (self.x, self.y)
+        self.rect.center = (self.x, self.y)
         
         self.velocity = [0,0]
         
@@ -131,7 +181,7 @@ class Bit(pygame.sprite.Sprite):
         self.x += self.velocity[0]
         self.y += self.velocity[1]
         
-        self.rect.topleft = (self.x, self.y)
+        self.rect.center = (self.x, self.y)
         
     def move(self, data_objects):
         for object in data_objects:
@@ -140,6 +190,23 @@ class Bit(pygame.sprite.Sprite):
         
         
 class Data_Type:
+    # A class variable to check if there is already a data_type grabbed
+    grabbed = False
+        
+    def carry(self, x, y, pressed):
+        if collide_point_square((x, y), self.rect.topleft, self.rect.bottomright):
+            if pressed and self.carried == 0 and Data_Type.grabbed == False:
+                self.carried = 2
+                Data_Type.grabbed = True
+        elif (pressed or Data_Type.grabbed == True) and self.carried != 2:
+            self.carried = 1
+        if not pressed:
+            Data_Type.grabbed = False
+            self.carried = 0
+        
+        if self.carried == 2:
+            self.rect.center = (x, y)
+            
     # self.exponent_data should be a dict with all the counted data
     def count_data(self):
         bits = 0
@@ -151,7 +218,7 @@ class Data_Type:
         
 
 class Wind(Data_Type, pygame.sprite.Sprite):
-    def __init__(self, x, y, magnitude=100, direction=0.7):
+    def __init__(self, x, y, magnitude=50, direction=0):
         assert (0 <= magnitude <= 100)
         self.type = "wind"
         # Set up the sprite
@@ -163,12 +230,42 @@ class Wind(Data_Type, pygame.sprite.Sprite):
         
         # Set up the rect that controls the size and location of the sprite
         self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        self.rect.center = (x, y)
         
         # self.linear_data has points that each cost STATIC_DATA_COST bits
         # self.exponent_data increases for each extra bit you use (i.e. the number 7 costs 3, the number 8 costs 4)
         self.linear_data = {'x':x, 'y':y, 'direction':direction}
         self.exponent_data = {'magnitude':magnitude}
+        
+        self.update_direction(direction)
+        
+        # 0 is none pressed
+        # 1 is something else pressed
+        # 2 is self pressed
+        self.carried = 0
+            
+        
+    def move_bit(self, bit):
+        nodes_in_space = ((self.nodes[0][0] + self.rect.left, self.nodes[0][1] + self.rect.top),
+                          (self.nodes[1][0] + self.rect.left, self.nodes[1][1] + self.rect.top))
+        # Get the angle from both nodes
+        angles = [direction(nodes_in_space[0], bit.rect.center), direction(nodes_in_space[1], bit.rect.center)]
+        angles[0] = compass_lock(angles[0] + self.linear_data['direction'], False)
+        angles[1] = compass_lock(angles[1] + self.linear_data['direction'], False)
+        #print(angles)
+        #print(angles, pi/2, self.nodes[0], bit.rect.topleft)
+        if angles[0] > 0 and angles[1] < 0:
+            #print ("Yoooooooooo")
+            bit.image.fill(RED)
+            bit.velocity[0] += self.exponent_data['magnitude'] * cos(self.linear_data['direction']) / 200
+            bit.velocity[1] -= self.exponent_data['magnitude'] * sin(self.linear_data['direction']) / 200
+        else:
+            bit.image.fill(BLUE)
+            
+    def update_direction(self, direction):
+        direction = compass_lock(-direction)
+        self.image.fill(WHITE)
+        self.linear_data['direction'] = direction
         
         ## THIS CODE IS LITERALLY HITLER
         # It calculates the nodes (or edges) of the rotated fan
@@ -176,31 +273,7 @@ class Wind(Data_Type, pygame.sprite.Sprite):
         self.nodes = ([int(self.rect.width//2*cos(-direction-pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction-pi/2)+self.rect.width//2)], [int(self.rect.width//2*cos(-direction + pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction + pi/2)+self.rect.width//2)])
         pygame.draw.circle(self.image, BLACK, self.nodes[0], 3)
         pygame.draw.circle(self.image, BLACK, self.nodes[1], 3)
-        self.nodes[0][0] += self.rect.left
-        self.nodes[1][0] += self.rect.left
-        self.nodes[0][1] += self.rect.top
-        self.nodes[1][1] += self.rect.top
-        
-        
-    def move_bit(self, bit):
-        # Get the angle from both nodes
-        angles = [direction(self.nodes[0], bit.rect.center), direction(self.nodes[1], bit.rect.center)]
-        #angles = [direction((0,1), (0,0)), direction((0,0), (-1,0))]
-        angles[0] = compass_lock(angles[0] + self.linear_data['direction'], False)
-        angles[1] = compass_lock(angles[1] + self.linear_data['direction'], False)
-        #print(angles, pi/2, self.nodes[0], bit.rect.topleft)
-        if angles[0] > 0 and angles[1] < 0:
-            #print ("Yoooooooooo")
-            bit.velocity[0] += self.exponent_data['magnitude'] * cos(self.linear_data['direction']) / 200
-            bit.velocity[1] -= self.exponent_data['magnitude'] * sin(self.linear_data['direction']) / 200
-            
-    def update_direction(self, direction):
-        self.image.fill(WHITE)
-        self.linear_data['direction'] = direction
-        self.nodes = ([int(self.rect.width//2*cos(-direction-pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction-pi/2)+self.rect.width//2)], [int(self.rect.width//2*cos(-direction + pi/2)+self.rect.width//2), int(self.rect.width//2*sin(-direction + pi/2)+self.rect.width//2)])
-        pygame.draw.circle(self.image, BLACK, self.nodes[0], 3)
-        pygame.draw.circle(self.image, BLACK, self.nodes[1], 3)
-        self.nodes[0][0] += self.rect.left
-        self.nodes[1][0] += self.rect.left
-        self.nodes[0][1] += self.rect.top
-        self.nodes[1][1] += self.rect.top
+        #self.nodes[0][0] += self.rect.left
+        #self.nodes[1][0] += self.rect.left
+        #self.nodes[0][1] += self.rect.top
+        #self.nodes[1][1] += self.rect.top
