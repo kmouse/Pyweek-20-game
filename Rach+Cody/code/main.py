@@ -1,6 +1,7 @@
 from code.objects import Wind, Bounce, Bit, Server, Computer, Menu, Data_Type, Settings, Wall
 from code.calculations import direction
 from code.static import *
+from code.base_types import Screen_Object
 import pygame
 import sys
 
@@ -43,6 +44,8 @@ def level(screen, objects):
     game_pos = (0,0)
     menu_surfece = pygame.Surface((MENU_WIDTH, DEFAULT_SCREEN_HEIGHT))
     
+    # A group for everything
+    all_group = pygame.sprite.Group()
     # A pygame group for things the user interacts with
     interaction_group = pygame.sprite.Group()
     # Pygame group for dynamic objects that the user can't interact with
@@ -56,12 +59,12 @@ def level(screen, objects):
     
     settings = Settings(screen.get_width(), [], None)
     
-    Wind.containers = interaction_group
-    Bounce.containers = interaction_group
-    Bit.containers = dynamic_group, bit_group
-    Server.containers = dynamic_group, server_group
-    Computer.containers = dynamic_group, computer_group
-    Wall.containers = dynamic_group, scene_group
+    Wind.containers = interaction_group, all_group
+    Bounce.containers = interaction_group, all_group
+    Bit.containers = dynamic_group, bit_group, all_group
+    Server.containers = dynamic_group, server_group, all_group
+    Computer.containers = dynamic_group, computer_group, all_group
+    Wall.containers = dynamic_group, scene_group, all_group
     
     menu = Menu(screen.get_width(), screen.get_height(), objects['interactive'])
     for object in objects['static']:
@@ -90,8 +93,14 @@ def level(screen, objects):
                 sys.exit()
             if event.type == pygame.VIDEORESIZE:
                 screen = pygame.display.set_mode((max(event.w, DEFAULT_SCREEN_WIDTH), max(event.h, DEFAULT_SCREEN_HEIGHT)), pygame.RESIZABLE)
-                #game = pygame.Surface((max(event.w, DEFAULT_SCREEN_WIDTH)-MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
+                
                 game_pos = ((screen.get_width()-200) / 2 - game.get_width() / 2, screen.get_height() / 2 - game.get_height() / 2)
+                # Resize the game screen
+                # game = pygame.Surface((max(event.w, DEFAULT_SCREEN_WIDTH)-MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
+                # offset all items
+                Screen_Object.offset = game_pos
+                for object in all_group:
+                    object.move()
                 menu_surfece = pygame.Surface((MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
                 menu.update_size(MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT))
                 settings.update_size(screen.get_width())
@@ -106,7 +115,7 @@ def level(screen, objects):
                 
         
         for bit in bit_group:
-            bit.move(interaction_group, scene_group)
+            bit.move_pos(interaction_group, scene_group)
             for computer in computer_group:
                 if bit.rect.colliderect(computer.rect):
                     safe_packets+=1
