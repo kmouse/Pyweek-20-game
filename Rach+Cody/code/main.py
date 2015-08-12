@@ -1,27 +1,22 @@
-from code.objects import Wind, Bit, Server, Menu
+from code.objects import Wind, Bit, Server, Computer, Menu, Data_Type, Settings
 from code.calculations import direction
+from code.static import *
 import pygame
 import sys
 
 
-FPS = 60
 
-MENU_WIDTH = 200
-
-DEFAULT_SCREEN_WIDTH  = 800
-DEFAULT_SCREEN_HEIGHT = 500
-
-BLACK      = (0,   0,   0  )
-WHITE      = (255, 255, 255)
-GREEN      = (25,  230, 100)
-RED        = (255, 0,   0  )
-BLUE       = (45,  75,  245)
-FAINT_BLUE = (55, 55, 75)
-
-
+def total_data(objects):
+    total = 0
+    for object in objects:
+        total += object.count_data()
+    return total
+    
+    
 def draw(screen, *groups):
     screen.fill(BLACK)
     for group in groups:
+        #group.update()
         group.draw(screen)
         
 def background(screen, game_pos):
@@ -38,9 +33,10 @@ def update_menu(screen, menu, total_width):
         
 def main():
     screen = pygame.display.set_mode((DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE)
-    level(screen)
+    level(screen, {'interactive':{'wind':2}, 'static':{'server':(10,10), 'computer':(200, 40)}})
         
-def level(screen):
+        
+def level(screen, objects):
     game = pygame.Surface((DEFAULT_SCREEN_WIDTH-MENU_WIDTH, DEFAULT_SCREEN_HEIGHT))
     # Where the game is rendered
     # Initially (0, 0) as it is the default screen size
@@ -55,13 +51,19 @@ def level(screen):
     bit_group = pygame.sprite.Group()
     server_group = pygame.sprite.Group()
     
+    settings = Settings(screen.get_width(), [], None)
+    
     Wind.containers = interaction_group
     Bit.containers = dynamic_group, bit_group
     Server.containers = dynamic_group, server_group
+    Computer.containers = dynamic_group
     
-    menu = Menu(screen.get_width(), screen.get_height(), {"wind":3, "cats":3})
-    
-    Server(100,10)
+    menu = Menu(screen.get_width(), screen.get_height(), objects['interactive'])
+    for object in objects['static']:
+        if object == 'server':
+            Server(*objects['static'][object])
+        elif object == 'computer':
+            Computer(*objects['static'][object])
     
     clock = pygame.time.Clock()
     
@@ -71,6 +73,9 @@ def level(screen):
         mouse_pos[0] -= game_pos[0]
         mouse_pos[1] -= game_pos[1]
         mouse_pressed = pygame.mouse.get_pressed()
+        
+        mouse_absolute_pos = pygame.mouse.get_pos()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
@@ -80,6 +85,7 @@ def level(screen):
                 game_pos = ((screen.get_width()-200) / 2 - game.get_width() / 2, screen.get_height() / 2 - game.get_height() / 2)
                 menu_surfece = pygame.Surface((MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
                 menu.update_size(MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT))
+                settings.update_size(screen.get_width())
             if event.type == pygame.KEYDOWN:
                 pass
                 
@@ -94,21 +100,31 @@ def level(screen):
             bit.move(interaction_group)
                         
         for item in interaction_group:
-            #print (direction(item.rect.center, mouse_pos))
             item.carry(mouse_pos[0], mouse_pos[1], mouse_pressed[0])
+            new_settings = item.right_click(mouse_pos[0], mouse_pos[1], mouse_pressed[2])
+            if new_settings != None:
+                settings.set_items(new_settings, item)
             item.rect.clamp_ip(game.get_rect())
             
+        interaction_group.update()
         draw(game, interaction_group, dynamic_group)
         menu_surfece.fill((GREEN))
         update_menu(menu_surfece, menu, screen.get_width())
+        
+        if settings.click(mouse_absolute_pos[0], mouse_absolute_pos[1], mouse_pressed[0], screen.get_size()):
+            pass
+        
+        # All data objects (i.e. the things that the user controls) must be created here
         new_object = menu.create()
         if new_object != None:
             if new_object == "wind":
                 Wind(mouse_pos[0], mouse_pos[1])
+                print (total_data(interaction_group))
             
         background(screen, game_pos)
         screen.blit(menu_surfece, (screen.get_width()-MENU_WIDTH, 0))
         screen.blit(game, game_pos)
+        screen.blit(settings.image, (0, screen.get_height() - SETTINGS_HEIGHT))
         pygame.display.update()
         clock.tick(FPS)
 
