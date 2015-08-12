@@ -17,6 +17,12 @@ SETTINGS_HEIGHT = 30
 FPS = 60
 
 
+BOUNCE_WIDTH = 20
+
+
+MAX_AGE = 600
+
+
 UNPRESS = 0
 HOVER   = 1
 PRESS   = 2
@@ -27,6 +33,7 @@ WHITE = (255, 255, 255)
 GREEN = (25,  230, 100)
 RED   = (255, 0,   0  )
 BLUE  = (45,  75,  245)
-FAINT_BLUE       = (30,  30,  40)
+FAINT_BLUE = (30,  30,  40)
+DARK_BLUE  = (0,   0,   50)
 TRANSPARENT      = (0,   0,   0,   30)
 DARK_TRANSPARENT = (40,  40,  40,  160)

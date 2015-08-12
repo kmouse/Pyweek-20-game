@@ -1,12 +1,30 @@
 from code.data import filepath
-from code.calculations import direction, compass_lock, collide_point_square
+from code.calculations import direction, compass_lock, collide_point_square, distance
 from code.static import *
-from math import sin, cos, pi
+from math import sin, cos, pi, sqrt, degrees
 import pygame
 
 pygame.font.init()
 
 
+def rotate_center(image, angle):
+    orig_size = image.get_size()
+    new = pygame.transform.rotate(image, angle)
+    image.fill((0, 0, 0, 0))
+    new_size = new.get_size()
+    pos = ((orig_size[0] - new_size[0]) // 2, (orig_size[1] - new_size[1]) // 2)
+    image.blit(new, pygame.Rect(pos, orig_size))
+    
+    
+def reflect(velocity, normal):
+    angle = compass_lock(-direction(velocity, (0, 0)) + pi)
+    magnitude = distance((0, 0), velocity)
+    
+    angle = compass_lock(2*normal - angle - pi/2)
+    velocity = [magnitude*sin(angle), magnitude*cos(angle)]
+    return velocity
+
+    
 # Load an image for pygame
 def loadIm(name):
     file = data.filepath(name)
@@ -92,7 +110,6 @@ class Settings:
     def set_items(self, items, object):
         self.items = []
         for item in items:
-            print("Size:", )
             self.items.append(Settings_Item(item, self.image.get_width()/len(items), items[item], object.max_values[item]))
         self.draw_items()
         
@@ -126,10 +143,8 @@ class Settings:
                 
                 if self.items[i].name in self.controlled_object.linear_data:
                     self.controlled_object.linear_data[self.items[i].name] = self.items[i].value
-                    print ("AAAAAAAA")
                 elif self.items[i].name in self.controlled_object.exponent_data:
                     self.controlled_object.exponent_data[self.items[i].name] = self.items[i].value
-                    print ("BBBBBBBB")
         
             #print (scroll_value)
             self.draw_items()
@@ -144,7 +159,7 @@ class Settings:
             self.image.fill(DARK_TRANSPARENT)
         i = 0
         for item in self.items:
-            print ( self.image.get_width()/len(self.items)*i)
+            #print ( self.image.get_width()/len(self.items)*i)
             self.image.blit(item.image, (self.image.get_width()/len(self.items)*i, 0))
             i += 1
     
@@ -284,6 +299,8 @@ class Bit(pygame.sprite.Sprite):
         
         self.x, self.y = x, y
         
+        self.age = 0
+        
         # Set up the rect that controls the size and location of the sprite
         self.rect = self.image.get_rect()
         self.rect.center = (self.x, self.y)
@@ -297,10 +314,13 @@ class Bit(pygame.sprite.Sprite):
         
         self.rect.center = (self.x, self.y)
         
+        self.age += 1
+        if self.age > MAX_AGE:
+            self.kill()
+        
     def move(self, data_objects):
         for object in data_objects:
-            if object.type == "wind":
-                object.move_bit(self)
+            object.move_bit(self)
         
         
 class Data_Type:
@@ -404,3 +424,77 @@ class Wind(Data_Type, pygame.sprite.Sprite):
         self.image.fill(WHITE)
         pygame.draw.circle(self.image, BLACK, self.nodes[0], 3)
         pygame.draw.circle(self.image, BLACK, self.nodes[1], 3)
+        
+        
+class Bounce(Data_Type, pygame.sprite.Sprite):
+    def __init__(self, x, y, bounciness=100, direction=0):
+        self.type = "bounce"
+        # Set up the sprite
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        
+        # Set up the sprite image 
+        self.image = pygame.Surface((100, 100), pygame.SRCALPHA)
+        self.internal_size = (sqrt(100**2 - BOUNCE_WIDTH**2), BOUNCE_WIDTH)
+        self.bounce = pygame.Surface(self.internal_size)
+        self.image.fill((0, 0, 0, 0))
+        self.bounce.fill(WHITE)
+        
+        # Set up the rect that controls the size and location of the sprite
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        
+        # self.linear_data has points that each cost STATIC_DATA_COST bits
+        # self.exponent_data increases for each extra bit you use (i.e. the number 7 costs 3, the number 8 costs 4)
+        self.linear_data = {'direction':direction}
+        self.exponent_data = {'bounciness':bounciness}
+        self.max_values = {'direction':pi, 'bounciness':100}
+        
+        self.update_direction(direction)
+        
+        # 0 is none pressed
+        # 1 is something else pressed
+        # 2 is self pressed
+        self.carried = 0
+        self.last_direction = self.linear_data['direction']
+            
+        
+    def move_bit(self, bit):
+        #print(angles)
+        #print(angles, pi/2, self.nodes[0], bit.rect.topleft)
+        top = self.rect.top + (self.rect.height - self.internal_size[0]) / 2
+        left = self.rect.left + (self.rect.width - self.internal_size[1]) / 2
+        bottom = self.rect.top + (self.rect.height + self.internal_size[0]) / 2
+        right = self.rect.left + (self.rect.width + self.internal_size[1]) / 2
+        #print ( (left, top), (right, bottom))
+        if collide_point_square(bit.rect.center, (left, top), (right, bottom), self.linear_data['direction']):
+            #print ("Yoooooooooo")
+            bit.image.fill(RED)
+            reflected = reflect(bit.velocity, self.linear_data['direction'])
+            
+            bit.velocity = reflect(bit.velocity, self.linear_data['direction'])
+            #bit.velocity[1] = 0
+            #= reflect(bit.velocity, self.linear_data['direction'])
+        else:
+            bit.image.fill(BLUE)
+            
+    def update_direction(self, direction):
+    
+        print ("slower")
+        direction = compass_lock(-direction)
+        self.linear_data['direction'] = direction
+        
+        top = self.rect.height / 2 - self.internal_size[1] / 2
+        left = self.rect.width / 2 - self.internal_size[0] / 2
+        
+        self.image.fill((0, 0, 0, 0))
+        self.bounce.fill(WHITE)
+        self.image.blit(self.bounce, (left, top))
+        rotate_center(self.image, degrees(self.linear_data['direction']) + 90)
+        
+    def update(self):
+        if self.last_direction != self.linear_data['direction']:
+            self.update_direction(-self.linear_data['direction'])
+        
+        self.last_direction = self.linear_data['direction']
+        #self.update_direction(-self.linear_data['direction'])
+        #print ("aAA")

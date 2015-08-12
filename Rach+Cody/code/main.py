@@ -1,4 +1,4 @@
-from code.objects import Wind, Bit, Server, Computer, Menu, Data_Type, Settings
+from code.objects import Wind, Bounce, Bit, Server, Computer, Menu, Data_Type, Settings
 from code.calculations import direction
 from code.static import *
 import pygame
@@ -33,7 +33,7 @@ def update_menu(screen, menu, total_width):
         
 def main():
     screen = pygame.display.set_mode((DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE)
-    level(screen, {'interactive':{'wind':2}, 'static':{'server':(10,10), 'computer':(200, 40)}})
+    level(screen, {'interactive':{'wind':2, 'bounce':2}, 'static':{'server':(100,10), 'computer':(400, 40)}})
         
         
 def level(screen, objects):
@@ -55,6 +55,7 @@ def level(screen, objects):
     settings = Settings(screen.get_width(), [], None)
     
     Wind.containers = interaction_group
+    Bounce.containers = interaction_group
     Bit.containers = dynamic_group, bit_group
     Server.containers = dynamic_group, server_group
     Computer.containers = dynamic_group, computer_group
@@ -126,7 +127,10 @@ def level(screen, objects):
         if new_object != None:
             if new_object == "wind":
                 Wind(mouse_pos[0], mouse_pos[1])
-                print (total_data(interaction_group))
+                #print (total_data(interaction_group))
+            elif new_object == "bounce":
+                Bounce(mouse_pos[0], mouse_pos[1])
+                #print (total_data(interaction_group))
             
         background(screen, game_pos)
         screen.blit(menu_surfece, (screen.get_width()-MENU_WIDTH, 0))
