@@ -1,4 +1,4 @@
-from code.objects import Wind, Bounce, Bit, Server, Computer, Menu, Data_Type, Settings
+from code.objects import Wind, Bounce, Bit, Server, Computer, Menu, Data_Type, Settings, Wall
 from code.calculations import direction
 from code.static import *
 import pygame
@@ -33,7 +33,7 @@ def update_menu(screen, menu, total_width):
         
 def main():
     screen = pygame.display.set_mode((DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE)
-    level(screen, {'interactive':{'wind':2, 'bounce':2}, 'static':{'server':(100,10), 'computer':(400, 40)}})
+    level(screen, {'interactive':{'wind':1, 'bounce':2}, 'static':{'server':(100,10), 'computer':(400, 40), 'wall':(200, 100, 'v', 200)}})
         
         
 def level(screen, objects):
@@ -51,6 +51,8 @@ def level(screen, objects):
     bit_group = pygame.sprite.Group()
     server_group = pygame.sprite.Group()
     computer_group = pygame.sprite.Group()
+    # A group for things that move the bits but can't be interacted with
+    scene_group = pygame.sprite.Group()
     
     settings = Settings(screen.get_width(), [], None)
     
@@ -59,6 +61,7 @@ def level(screen, objects):
     Bit.containers = dynamic_group, bit_group
     Server.containers = dynamic_group, server_group
     Computer.containers = dynamic_group, computer_group
+    Wall.containers = dynamic_group, scene_group
     
     menu = Menu(screen.get_width(), screen.get_height(), objects['interactive'])
     for object in objects['static']:
@@ -66,6 +69,8 @@ def level(screen, objects):
             Server(*objects['static'][object])
         elif object == 'computer':
             Computer(*objects['static'][object])
+        elif object == "wall":
+            Wall(*objects['static'][object])
     
     clock = pygame.time.Clock()
     
@@ -101,7 +106,7 @@ def level(screen, objects):
                 
         
         for bit in bit_group:
-            bit.move(interaction_group)
+            bit.move(interaction_group, scene_group)
             for computer in computer_group:
                 if bit.rect.colliderect(computer.rect):
                     safe_packets+=1

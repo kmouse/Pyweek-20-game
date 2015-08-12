@@ -309,6 +309,10 @@ class Bit(pygame.sprite.Sprite):
         
     def update(self):
         self.velocity[1] += GRAVITY
+        
+        self.velocity[0] *= FRICTION
+        self.velocity[1] *= FRICTION
+        
         self.x += self.velocity[0]
         self.y += self.velocity[1]
         
@@ -318,8 +322,10 @@ class Bit(pygame.sprite.Sprite):
         if self.age > MAX_AGE:
             self.kill()
         
-    def move(self, data_objects):
-        for object in data_objects:
+    def move(self, user_objects, scene_objects):
+        for object in user_objects:
+            object.move_bit(self)
+        for object in scene_objects:
             object.move_bit(self)
         
         
@@ -434,7 +440,7 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
         
         # Set up the sprite image 
         self.image = pygame.Surface((100, 100), pygame.SRCALPHA)
-        self.internal_size = (sqrt(100**2 - BOUNCE_WIDTH**2), BOUNCE_WIDTH)
+        self.internal_size = (sqrt(100**2 - WALL_WIDTH**2), WALL_WIDTH)
         self.bounce = pygame.Surface(self.internal_size)
         self.image.fill((0, 0, 0, 0))
         self.bounce.fill(WHITE)
@@ -469,7 +475,6 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
         if collide_point_square(bit.rect.center, (left, top), (right, bottom), self.linear_data['direction']):
             #print ("Yoooooooooo")
             bit.image.fill(RED)
-            reflected = reflect(bit.velocity, self.linear_data['direction'])
             
             bit.velocity = reflect(bit.velocity, self.linear_data['direction'])
             #bit.velocity[1] = 0
@@ -498,3 +503,38 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
         self.last_direction = self.linear_data['direction']
         #self.update_direction(-self.linear_data['direction'])
         #print ("aAA")
+        
+        
+        
+
+class Wall(Data_Type, pygame.sprite.Sprite):
+    def __init__(self, x, y, orientation, length=100):
+        assert (length >= WALL_WIDTH)
+        self.type = "wall"
+        # Set up the sprite
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        
+        # Set up the sprite image 
+        size = (WALL_WIDTH, length) if orientation == 'v' else (length, WALL_WIDTH)
+        
+        self.normal = 0 if orientation == 'v' else pi/2
+        
+        self.image = pygame.Surface(size, pygame.SRCALPHA)
+        self.image.fill(WHITE)
+        
+        # Set up the rect that controls the size and location of the sprite
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+            
+        
+    def move_bit(self, bit):
+        if collide_point_square(bit.rect.center, self.rect.topleft, self.rect.bottomright):
+            #print ("Yoooooooooo")
+            bit.image.fill(RED)
+            
+            bit.velocity = reflect(bit.velocity, self.normal)
+            
+            #bit.velocity[1] = 0
+            #= reflect(bit.velocity, self.linear_data['direction'])
+        else:
+            bit.image.fill(BLUE)
