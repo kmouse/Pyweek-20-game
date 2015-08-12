@@ -50,13 +50,14 @@ def level(screen, objects):
     # Group for the individual objects
     bit_group = pygame.sprite.Group()
     server_group = pygame.sprite.Group()
+    computer_group = pygame.sprite.Group()
     
     settings = Settings(screen.get_width(), [], None)
     
     Wind.containers = interaction_group
     Bit.containers = dynamic_group, bit_group
     Server.containers = dynamic_group, server_group
-    Computer.containers = dynamic_group
+    Computer.containers = dynamic_group, computer_group
     
     menu = Menu(screen.get_width(), screen.get_height(), objects['interactive'])
     for object in objects['static']:
@@ -66,6 +67,8 @@ def level(screen, objects):
             Computer(*objects['static'][object])
     
     clock = pygame.time.Clock()
+    
+    safe_packets = 0
     
     
     while True:
@@ -98,6 +101,10 @@ def level(screen, objects):
         
         for bit in bit_group:
             bit.move(interaction_group)
+            for computer in computer_group:
+                if bit.rect.colliderect(computer.rect):
+                    safe_packets+=1
+                    bit.kill()
                         
         for item in interaction_group:
             item.carry(mouse_pos[0], mouse_pos[1], mouse_pressed[0])

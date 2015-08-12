@@ -324,9 +324,9 @@ class Data_Type:
             self.rect.center = (x, y)
             
     def right_click(self, x, y, pressed):
-        #if collide_point_square((x, y), self.rect.topleft, self.rect.bottomright):
-        #    if pressed:
-        #        return (merge_dicts(self.exponent_data, self.linear_data))
+        if collide_point_square((x, y), self.rect.topleft, self.rect.bottomright):
+            if pressed:
+                return (merge_dicts(self.exponent_data, self.linear_data))
         return None
             
     # self.exponent_data should be a dict with all the counted data
