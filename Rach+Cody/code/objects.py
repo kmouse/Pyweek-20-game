@@ -18,9 +18,9 @@ def rotate_center(image, angle):
     image.blit(new, pygame.Rect(pos, orig_size))
     
     
-def reflect(velocity, normal):
+def reflect(velocity, normal, exit_velocity=1):
     angle = compass_lock(-direction(velocity, (0, 0)) + pi)
-    magnitude = distance((0, 0), velocity)
+    magnitude = distance((0, 0), velocity) * exit_velocity
     
     angle = compass_lock(2*normal - angle - pi/2)
     velocity = [magnitude*sin(angle), magnitude*cos(angle)]
@@ -39,9 +39,6 @@ def loadIm(name):
         file = data.filepath(name)
         image = pygame.image.load(file)
         return image.convert_alpha()
-        
-        
-
         
         
 def get_data_size_int(point):
@@ -97,7 +94,6 @@ class Computer(Screen_Object, pygame.sprite.Sprite):
         self.rect.center = (self.x, self.y)
         self.timer = (self.timer - 1) if self.timer != 0 else self.emit_time
         
-  
   
 class Bit(Screen_Object, pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -205,9 +201,13 @@ class Wind(Data_Type, pygame.sprite.Sprite):
         pygame.draw.circle(self.image, BLACK, self.nodes[0], 3)
         pygame.draw.circle(self.image, BLACK, self.nodes[1], 3)
         
+        center = (self.rect.width//2, self.rect.height//2)
+        offset = (self.rect.width//2+self.exponent_data['magnitude']//2*cos(-self.linear_data['direction']), self.rect.height//2+self.exponent_data['magnitude']//2*sin(-self.linear_data['direction']))
+        pygame.draw.line(self.image, RED, center, offset, 5)
+        
         
 class Bounce(Data_Type, pygame.sprite.Sprite):
-    def __init__(self, x, y, bounciness=100, direction=0):
+    def __init__(self, x, y, bounciness=100, direction=-pi/2):
         self.type = "bounce"
         # Set up the sprite
         pygame.sprite.Sprite.__init__(self, self.containers)
@@ -250,7 +250,8 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
             #print ("Yoooooooooo")
             bit.image.fill(RED)
             
-            bit.velocity = reflect(bit.velocity, self.linear_data['direction'])
+            bit.velocity = reflect(bit.velocity, self.linear_data['direction'], self.exponent_data['bounciness']/100)
+            bit.update()
             #bit.velocity[1] = 0
             #= reflect(bit.velocity, self.linear_data['direction'])
         else:
@@ -275,12 +276,49 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
             self.update_direction(-self.linear_data['direction'])
         
         self.last_direction = self.linear_data['direction']
-        #self.update_direction(-self.linear_data['direction'])
-        #print ("aAA")
         
         
+class Conveyor(Data_Type, pygame.sprite.Sprite):
+    def __init__(self, x, y, width=100, speed=75):
+        self.type = "conveyor"
+        # Set up the sprite
+        pygame.sprite.Sprite.__init__(self, self.containers)
         
+        # Set up the sprite image 
+        self.image = pygame.Surface((width, WALL_WIDTH), pygame.SRCALPHA)
+        self.image.fill((0, 0, 0, 0))
+        self.image.fill(ORANGE)
+        
+        # Set up the rect that controls the size and location of the sprite
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        
+        # self.linear_data has points that each cost STATIC_DATA_COST bits
+        # self.exponent_data increases for each extra bit you use (i.e. the number 7 costs 3, the number 8 costs 4)
+        self.linear_data = {}
+        self.exponent_data = {'width':width, 'speed':speed}
+        self.max_values = {'width':100, 'speed':100}
+        
+        # 0 is none pressed
+        # 1 is something else pressed
+        # 2 is self pressed
+        self.carried = 0
+            
+        
+    def move_bit(self, bit):
+        if collide_point_square(bit.rect.center, self.rect.topleft, self.rect.bottomright):
+            #print ("Yoooooooooo")
+            bit.image.fill(RED)
+            
+            bit.velocity[0] = (self.exponent_data['speed'] - 50) / 10
+            print (bit.velocity[0])
+            bit.velocity[1] = 0
+            #bit.rect.centery = self.rect.top
+            #bit.x, bit.y = bit.rect.center
+        else:
+            bit.image.fill(BLUE)
 
+            
 class Wall(Screen_Object, pygame.sprite.Sprite):
     def __init__(self, x, y, orientation, length=100):
         assert (length >= WALL_WIDTH)

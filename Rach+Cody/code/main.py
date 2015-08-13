@@ -1,5 +1,5 @@
-from code.objects import Wind, Bounce, Bit, Server, Computer, Menu, Data_Type, Settings, Wall
-from code.calculations import direction
+from code.objects import Wind, Bounce, Conveyor, Bit, Server, Computer, Menu, Data_Type, Settings, Wall
+from code.calculations import direction, clamp_square
 from code.static import *
 from code.base_types import Screen_Object
 import pygame
@@ -34,7 +34,7 @@ def update_menu(screen, menu, total_width):
         
 def main():
     screen = pygame.display.set_mode((DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE)
-    level(screen, {'interactive':{'wind':1, 'bounce':2}, 'static':{'server':(100,10), 'computer':(400, 40), 'wall':(200, 100, 'v', 200)}})
+    level(screen, {'interactive':{'wind':1, 'bounce':2, 'conveyor':2}, 'static':{'server':(100,10), 'computer':(400, 40), 'wall':(200, 100, 'v', 200)}})
         
         
 def level(screen, objects):
@@ -61,6 +61,7 @@ def level(screen, objects):
     
     Wind.containers = interaction_group, all_group
     Bounce.containers = interaction_group, all_group
+    Conveyor.containers = interaction_group, all_group
     Bit.containers = dynamic_group, bit_group, all_group
     Server.containers = dynamic_group, server_group, all_group
     Computer.containers = dynamic_group, computer_group, all_group
@@ -82,8 +83,8 @@ def level(screen, objects):
     
     while True:
         mouse_pos = list(pygame.mouse.get_pos())
-        mouse_pos[0] -= game_pos[0]
-        mouse_pos[1] -= game_pos[1]
+        #mouse_pos[0] -= game_pos[0]
+        #mouse_pos[1] -= game_pos[1]
         mouse_pressed = pygame.mouse.get_pressed()
         
         mouse_absolute_pos = pygame.mouse.get_pos()
@@ -94,13 +95,18 @@ def level(screen, objects):
             if event.type == pygame.VIDEORESIZE:
                 screen = pygame.display.set_mode((max(event.w, DEFAULT_SCREEN_WIDTH), max(event.h, DEFAULT_SCREEN_HEIGHT)), pygame.RESIZABLE)
                 
-                game_pos = ((screen.get_width()-200) / 2 - game.get_width() / 2, screen.get_height() / 2 - game.get_height() / 2)
-                # Resize the game screen
-                # game = pygame.Surface((max(event.w, DEFAULT_SCREEN_WIDTH)-MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
                 # offset all items
-                Screen_Object.offset = game_pos
+                Screen_Object.offset = ((screen.get_width()-200) / 2 - game.get_width() / 2, screen.get_height() / 2 - game.get_height() / 2)
                 for object in all_group:
                     object.move()
+                    
+                # Resize the game screen
+                game = pygame.Surface((max(event.w, DEFAULT_SCREEN_WIDTH)-MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
+                
+                
+                game_pos = ((screen.get_width()-200) / 2 - game.get_width() / 2, screen.get_height() / 2 - game.get_height() / 2)                
+                print ("Game_pos =", game_pos)
+
                 menu_surfece = pygame.Surface((MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
                 menu.update_size(MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT))
                 settings.update_size(screen.get_width())
@@ -126,7 +132,7 @@ def level(screen, objects):
             new_settings = item.right_click(mouse_pos[0], mouse_pos[1], mouse_pressed[2])
             if new_settings != None:
                 settings.set_items(new_settings, item)
-            item.rect.clamp_ip(game.get_rect())
+            #item.rect.center = clamp_square(item.rect.center, game_pos, (game_pos[0] + DEFAULT_SCREEN_WIDTH - MENU_WIDTH, game_pos[1] + DEFAULT_SCREEN_HEIGHT))
             
         interaction_group.update()
         draw(game, interaction_group, dynamic_group)
@@ -145,10 +151,13 @@ def level(screen, objects):
             elif new_object == "bounce":
                 Bounce(mouse_pos[0], mouse_pos[1])
                 #print (total_data(interaction_group))
+            elif new_object == "conveyor":
+                Conveyor(mouse_pos[0], mouse_pos[1])
+                #print (total_data(interaction_group))
             
-        background(screen, game_pos)
+        #background(screen, game_pos)
         screen.blit(menu_surfece, (screen.get_width()-MENU_WIDTH, 0))
-        screen.blit(game, game_pos)
+        screen.blit(game, (0, 0))#game_pos)
         screen.blit(settings.image, (0, screen.get_height() - SETTINGS_HEIGHT))
         pygame.display.update()
         clock.tick(FPS)

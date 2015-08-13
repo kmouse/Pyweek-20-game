@@ -46,3 +46,19 @@ def collide_point_square(point, topleft, bottomright, angle=0):
             return True
     #print(False)
     return False
+   
+   
+def clamp_square(point, topleft, bottomright):
+    print (point, topleft, bottomright)
+    point = list(point)
+    if point[0] < topleft[0]:
+        point[0] = topleft[0]
+    if point[0] > bottomright[0]:
+        point[0] = bottomright[0]
+        
+    if point[1] < topleft[1]:
+        point[1] = topleft[1]
+    if point[1] > bottomright[1]:
+        point[1] = bottomright[1]
+    
+    return point
