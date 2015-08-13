@@ -258,8 +258,6 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
             bit.image.fill(BLUE)
             
     def update_direction(self, direction):
-    
-        print ("slower")
         direction = compass_lock(-direction)
         self.linear_data['direction'] = direction
         
@@ -311,7 +309,6 @@ class Conveyor(Data_Type, pygame.sprite.Sprite):
             bit.image.fill(RED)
             
             bit.velocity[0] = (self.exponent_data['speed'] - 50) / 10
-            print (bit.velocity[0])
             bit.velocity[1] = 0
             #bit.rect.centery = self.rect.top
             #bit.x, bit.y = bit.rect.center

@@ -18,7 +18,7 @@ class Settings_Item:
         
     def update_value(self, value):
         self.value = value
-        #print(self.value)
+        print(self.value)
         self.update()
         
     def update_size(self, width):
@@ -27,7 +27,7 @@ class Settings_Item:
         self.update()
         
     def update(self):
-        #print ("Updating")
+        print ("Updating:", self.image.get_width() * self.value / self.max_value)
         self.image.fill((0, 0, 0, 0))
         self.image.fill((255, 255, 255, 40), pygame.Rect((0,0), (self.image.get_width() * self.value / self.max_value, SETTINGS_HEIGHT)))
         self.image.blit(text(self.name, 25, WHITE), (0, 0))
@@ -35,11 +35,14 @@ class Settings_Item:
     
 class Settings:
     def __init__(self, width, items, current_item):
+        self.image = pygame.Surface((1,1), pygame.SRCALPHA)
         self.current_item = current_item
         self.set_items(items, None)
             
         self.update_size(width)
         self.draw_items()
+        
+        self.size = 10
         
         # 0 is none
         # 1 is not me
@@ -51,14 +54,23 @@ class Settings:
     def update_size(self, width):
         self.image = pygame.Surface((width - MENU_WIDTH, SETTINGS_HEIGHT), pygame.SRCALPHA)
         self.image.fill(DARK_TRANSPARENT)
+            
+        if len(self.items):
+            self.size = self.image.get_width()/(len(self.items) + 1)
+            
         for item in self.items:
-            item.update_size(self.image.get_width()/len(self.items))
+            item.update_size(self.image.get_width()/(len(self.items)+1))
         self.draw_items()
         
     def set_items(self, items, object):
         self.items = []
+        
+        if len(items):
+            self.size = self.image.get_width()/(len(items) + 1)
+            self.items.append(Settings_Item("delete", self.size, 0, 100))
+            
         for item in items:
-            self.items.append(Settings_Item(item, self.image.get_width()/len(items), items[item], object.max_values[item]))
+            self.items.append(Settings_Item(item, self.size, items[item], object.max_values[item]))
         self.draw_items()
         
         # Giving settings power to change the values in the object when a setting is changed
@@ -81,10 +93,10 @@ class Settings:
         #print (self.pressed)
         
         if self.pressed == 2 and len(self.items):
-            i = int(x // (self.image.get_width()/len(self.items)))
+            i = int(x // self.size)
             if i == self.pressed_item or self.pressed_item == -1:
                 self.pressed_item = i
-                scroll_value = x - (self.image.get_width()/len(self.items))*i
+                scroll_value = x - self.size*i
                 scroll_value /= self.items[i].image.get_width()
                 scroll_value *= self.items[i].max_value
                 self.items[i].update_value(scroll_value)
@@ -93,22 +105,28 @@ class Settings:
                     self.controlled_object.linear_data[self.items[i].name] = self.items[i].value
                 elif self.items[i].name in self.controlled_object.exponent_data:
                     self.controlled_object.exponent_data[self.items[i].name] = self.items[i].value
+                elif self.items[i].name == 'delete':
+                    type = self.controlled_object.type
+                    self.draw_items()
+                    self.controlled_object.kill()
+                    return type
+                    
+                else:
+                    print ("No attribute called:", self.items[i].name)
         
             #print (scroll_value)
-            self.draw_items()
             
-            return True
         else:
             self.pressed_item = -1
-        return False
+        self.draw_items()
+        return None
         
     def draw_items(self):
-        if len(self.items):
-            self.image.fill(DARK_TRANSPARENT)
+        self.image.fill(DARK_TRANSPARENT)
         i = 0
         for item in self.items:
             #print ( self.image.get_width()/len(self.items)*i)
-            self.image.blit(item.image, (self.image.get_width()/len(self.items)*i, 0))
+            self.image.blit(item.image, (self.size*i, 0))
             i += 1
     
     
@@ -175,7 +193,6 @@ class Menu:
                 if (self.menu_items[i].quantity > 0):
                     self.create_stack.append(self.menu_items[i].type)
                     self.menu_items[i].quantity -= 1
-                
             if self.pressed == i:
                 self.menu_items[i].press(PRESS)
             elif 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll <= mouse_pos[1] <= 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll + MENU_ITEM_HEIGHT and screen_width - mouse_pos[0] < 200 and self.pressed == None:
@@ -193,3 +210,8 @@ class Menu:
         if len(self.create_stack):
             return self.create_stack.pop(0)
         return None
+        
+    def add(self, type):
+        for item in self.menu_items:
+            if item.type == type:
+                item.quantity += 1

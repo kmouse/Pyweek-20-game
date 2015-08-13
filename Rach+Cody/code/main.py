@@ -105,7 +105,7 @@ def level(screen, objects):
                 
                 
                 game_pos = ((screen.get_width()-200) / 2 - game.get_width() / 2, screen.get_height() / 2 - game.get_height() / 2)                
-                print ("Game_pos =", game_pos)
+                #print ("Game_pos =", game_pos)
 
                 menu_surfece = pygame.Surface((MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT)))
                 menu.update_size(MENU_WIDTH, max(event.h, DEFAULT_SCREEN_HEIGHT))
@@ -139,8 +139,11 @@ def level(screen, objects):
         menu_surfece.fill((GREEN))
         update_menu(menu_surfece, menu, screen.get_width())
         
-        if settings.click(mouse_absolute_pos[0], mouse_absolute_pos[1], mouse_pressed[0], screen.get_size()):
-            pass
+        type = settings.click(mouse_absolute_pos[0], mouse_absolute_pos[1], mouse_pressed[0], screen.get_size())
+        if type:
+            print("looser")
+            menu.add(type)
+            settings.set_items([], None)
         
         # All data objects (i.e. the things that the user controls) must be created here
         new_object = menu.create()
