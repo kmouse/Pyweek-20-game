@@ -140,6 +140,9 @@ class Wind(Data_Type, pygame.sprite.Sprite):
     def __init__(self, x, y, magnitude=50, direction=0):
         assert (0 <= magnitude <= 100)
         self.type = "wind"
+        
+        self.timer = 0
+        
         # Set up the sprite
         pygame.sprite.Sprite.__init__(self, self.containers)
         
@@ -209,6 +212,9 @@ class Wind(Data_Type, pygame.sprite.Sprite):
 class Bounce(Data_Type, pygame.sprite.Sprite):
     def __init__(self, x, y, bounciness=100, direction=-pi/2):
         self.type = "bounce"
+        
+        self.timer = 0
+        
         # Set up the sprite
         pygame.sprite.Sprite.__init__(self, self.containers)
         
@@ -279,6 +285,9 @@ class Bounce(Data_Type, pygame.sprite.Sprite):
 class Conveyor(Data_Type, pygame.sprite.Sprite):
     def __init__(self, x, y, width=100, speed=75):
         self.type = "conveyor"
+        
+        self.timer = 0
+        
         # Set up the sprite
         pygame.sprite.Sprite.__init__(self, self.containers)
         

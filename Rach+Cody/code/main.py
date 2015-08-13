@@ -129,7 +129,7 @@ def level(screen, objects):
                         
         for item in interaction_group:
             item.carry(mouse_pos[0], mouse_pos[1], mouse_pressed[0])
-            new_settings = item.right_click(mouse_pos[0], mouse_pos[1], mouse_pressed[2])
+            new_settings = item.right_click(mouse_pos[0], mouse_pos[1], mouse_pressed)
             if new_settings != None:
                 settings.set_items(new_settings, item)
             #item.rect.center = clamp_square(item.rect.center, game_pos, (game_pos[0] + DEFAULT_SCREEN_WIDTH - MENU_WIDTH, game_pos[1] + DEFAULT_SCREEN_HEIGHT))

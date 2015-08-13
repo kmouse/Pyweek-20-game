@@ -1,4 +1,5 @@
 from code.calculations import collide_point_square
+from code.static import *
 
 def merge_dicts(x, y):
     z = x.copy()
@@ -39,8 +40,11 @@ class Data_Type(Screen_Object):
         self.rect.center = self.x, self.y
             
     def right_click(self, x, y, pressed):
+        if self.timer == 0:
+            self.timer = LAG_COUNTER
+        self.timer-=1
         if collide_point_square((x, y), self.rect.topleft, self.rect.bottomright):
-            if pressed:
+            if pressed[0] and self.timer == 0 or pressed[2]:
                 return (merge_dicts(self.exponent_data, self.linear_data))
         return None
             

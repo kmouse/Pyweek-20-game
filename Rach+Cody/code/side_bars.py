@@ -30,7 +30,8 @@ class Settings_Item:
         print ("Updating:", self.image.get_width() * self.value / self.max_value)
         self.image.fill((0, 0, 0, 0))
         self.image.fill((255, 255, 255, 40), pygame.Rect((0,0), (self.image.get_width() * self.value / self.max_value, SETTINGS_HEIGHT)))
-        self.image.blit(text(self.name, 25, WHITE), (0, 0))
+        self.image.blit(text(self.name, 25, WHITE), (5, 0))
+        pygame.draw.line(self.image, WHITE, (0, 0), (0, SETTINGS_HEIGHT), 1)
     
     
 class Settings:
@@ -54,12 +55,12 @@ class Settings:
     def update_size(self, width):
         self.image = pygame.Surface((width - MENU_WIDTH, SETTINGS_HEIGHT), pygame.SRCALPHA)
         self.image.fill(DARK_TRANSPARENT)
-            
+        
         if len(self.items):
-            self.size = self.image.get_width()/(len(self.items) + 1)
+            self.size = self.image.get_width()/(len(self.items))
             
         for item in self.items:
-            item.update_size(self.image.get_width()/(len(self.items)+1))
+            item.update_size(self.size)
         self.draw_items()
         
     def set_items(self, items, object):
@@ -169,6 +170,8 @@ class Menu:
         self.image.fill(GREEN)
         self.scroll = 0
         
+        self.testing = False
+        
         self.menu_items = []
         
         self.pressed = None
@@ -186,20 +189,25 @@ class Menu:
     def press(self, mouse_pos, mouse_pressed, screen_width):
         ##FIX THESE LINES DAMMIT
         for i in range(len(self.menu_items)):
+            in_menu = 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll <= mouse_pos[1] <= 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll + MENU_ITEM_HEIGHT and screen_width - mouse_pos[0] < 200
             if mouse_pressed == False:
                 self.pressed = None
-            elif self.pressed == None and 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll <= mouse_pos[1] <= 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll + MENU_ITEM_HEIGHT and screen_width - mouse_pos[0] < 200:
+            elif self.pressed == None and in_menu and mouse_pos[1] < self.image.get_height() - SETTINGS_HEIGHT:
                 self.pressed = i
                 if (self.menu_items[i].quantity > 0):
                     self.create_stack.append(self.menu_items[i].type)
                     self.menu_items[i].quantity -= 1
             if self.pressed == i:
                 self.menu_items[i].press(PRESS)
-            elif 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll <= mouse_pos[1] <= 20+i*(MENU_ITEM_HEIGHT + 20) - self.scroll + MENU_ITEM_HEIGHT and screen_width - mouse_pos[0] < 200 and self.pressed == None:
+            elif in_menu and mouse_pos[1] < self.image.get_height() - SETTINGS_HEIGHT and self.pressed == None:
                 self.menu_items[i].press(HOVER)
                 #print ("YEHAH")
             else:
                 self.menu_items[i].press(UNPRESS)
+                
+        if mouse_pos[1] > self.image.get_height() - SETTINGS_HEIGHT and mouse_pos[0] > screen_width - MENU_WIDTH and mouse_pressed:
+            self.testing = True
+            print (True)
         
     def update_size(self, width, height):
         self.image = pygame.Surface((width, height))
