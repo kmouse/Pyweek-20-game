@@ -126,8 +126,6 @@ class Bit(Screen_Object, pygame.sprite.Sprite):
         self.rect.center = (self.x, self.y)
         
         self.age += 1
-        if self.age > MAX_AGE:
-            self.kill()
         
     def move_pos(self, user_objects, scene_objects):
         for object in user_objects:

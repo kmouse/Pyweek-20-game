@@ -59,6 +59,8 @@ def level(screen, objects):
     
     settings = Settings(screen.get_width(), [], None)
     
+    not_testing = True
+    
     Wind.containers = interaction_group, all_group
     Bounce.containers = interaction_group, all_group
     Conveyor.containers = interaction_group, all_group
@@ -113,7 +115,6 @@ def level(screen, objects):
             if event.type == pygame.KEYDOWN:
                 pass
                 
-                
         dynamic_group.update()
         for item in server_group:
             if item.timer == 0:
@@ -122,41 +123,59 @@ def level(screen, objects):
         
         for bit in bit_group:
             bit.move_pos(interaction_group, scene_group)
+            if bit.age > MAX_AGE:
+                bit.kill()
+                if menu.testing:
+                    return False
             for computer in computer_group:
                 if bit.rect.colliderect(computer.rect):
-                    safe_packets+=1
+                    if menu.testing:
+                        print("Safe", safe_packets)
+                        safe_packets+=1
+                        if safe_packets > 4:
+                            return True
                     bit.kill()
-                        
-        for item in interaction_group:
-            item.carry(mouse_pos[0], mouse_pos[1], mouse_pressed[0])
-            new_settings = item.right_click(mouse_pos[0], mouse_pos[1], mouse_pressed)
-            if new_settings != None:
-                settings.set_items(new_settings, item)
+                    
+                    
+        if menu.testing and not_testing:
+            not_testing = False
+            for bit in bit_group:
+                bit.kill()
+                
+        if not menu.testing:
+            for item in interaction_group:
+                item.carry(mouse_pos[0], mouse_pos[1], mouse_pressed[0])
+                new_settings = item.right_click(mouse_pos[0], mouse_pos[1], mouse_pressed)
+                if new_settings != None:
+                    settings.set_items(new_settings, item)
             #item.rect.center = clamp_square(item.rect.center, game_pos, (game_pos[0] + DEFAULT_SCREEN_WIDTH - MENU_WIDTH, game_pos[1] + DEFAULT_SCREEN_HEIGHT))
             
         interaction_group.update()
         draw(game, interaction_group, dynamic_group)
         menu_surfece.fill((GREEN))
-        update_menu(menu_surfece, menu, screen.get_width())
+        if not menu.testing:
+            update_menu(menu_surfece, menu, screen.get_width())
         
-        type = settings.click(mouse_absolute_pos[0], mouse_absolute_pos[1], mouse_pressed[0], screen.get_size())
-        if type:
-            print("looser")
-            menu.add(type)
-            settings.set_items([], None)
         
-        # All data objects (i.e. the things that the user controls) must be created here
-        new_object = menu.create()
-        if new_object != None:
-            if new_object == "wind":
-                Wind(mouse_pos[0], mouse_pos[1])
-                #print (total_data(interaction_group))
-            elif new_object == "bounce":
-                Bounce(mouse_pos[0], mouse_pos[1])
-                #print (total_data(interaction_group))
-            elif new_object == "conveyor":
-                Conveyor(mouse_pos[0], mouse_pos[1])
-                #print (total_data(interaction_group))
+        if not menu.testing:
+            type = settings.click(mouse_absolute_pos[0], mouse_absolute_pos[1], mouse_pressed[0], screen.get_size())
+            if type:
+                print("looser")
+                menu.add(type)
+                settings.set_items([], None)
+            
+            # All data objects (i.e. the things that the user controls) must be created here
+            new_object = menu.create()
+            if new_object != None:
+                if new_object == "wind":
+                    Wind(mouse_pos[0], mouse_pos[1])
+                    #print (total_data(interaction_group))
+                elif new_object == "bounce":
+                    Bounce(mouse_pos[0], mouse_pos[1])
+                    #print (total_data(interaction_group))
+                elif new_object == "conveyor":
+                    Conveyor(mouse_pos[0], mouse_pos[1])
+                    #print (total_data(interaction_group))
             
         #background(screen, game_pos)
         screen.blit(menu_surfece, (screen.get_width()-MENU_WIDTH, 0))
